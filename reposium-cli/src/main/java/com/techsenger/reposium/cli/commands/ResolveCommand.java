@@ -58,6 +58,9 @@ class ResolveCommand implements Command {
     @Parameter(names = {"-l"}, description = "Local repo URL")
     private String localRepo;
 
+    @Parameter(names = {"-c"}, description = "Checksum enabled")
+    private boolean checksumEnabled = true;
+
     /**
      * Artifact list.
      * Example: -a org.slf4j:slf4j-api:1.8.0-beta4,org.openjsfx:javafx-base:jar:linux:1.8.0-beta4
@@ -86,7 +89,8 @@ class ResolveCommand implements Command {
         }
         try {
             var repo = new MavenRepo();
-            repo.resolve(Paths.get(localRepo), repoUrlsByName, true, artifactDescriptors, new ConsoleMessagePrinter());
+            repo.resolve(Paths.get(localRepo), repoUrlsByName, checksumEnabled, artifactDescriptors,
+                    new ConsoleMessagePrinter());
         } catch (Exception e) {
             logger.error("Error installing artifacts", e);
         }

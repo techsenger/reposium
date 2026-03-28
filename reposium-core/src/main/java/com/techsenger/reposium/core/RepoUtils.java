@@ -61,9 +61,13 @@ final class RepoUtils {
     }
 
     static RepositorySystemSession newRepositorySystemSession(RepositorySystem system, String repoPath,
-            boolean ignoreChecksum, RepositoryListener repoListener, TransferListener transferListener) {
+            boolean checksumEnabled, RepositoryListener repoListener, TransferListener transferListener) {
         DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
-        session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_IGNORE);
+        if (checksumEnabled) {
+            session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_FAIL);
+        } else {
+            session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_IGNORE);
+        }
         LocalRepository localRepo = new LocalRepository(repoPath);
         session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, localRepo));
         session.setRepositoryListener(repoListener);
