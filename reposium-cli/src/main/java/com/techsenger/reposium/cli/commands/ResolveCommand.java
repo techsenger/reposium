@@ -86,7 +86,7 @@ class ResolveCommand implements Command {
         }
         try {
             var repo = new MavenRepo();
-            repo.resolve(Paths.get(localRepo), repoUrlsByName, artifactDescriptors, new ConsoleMessagePrinter());
+            repo.resolve(Paths.get(localRepo), repoUrlsByName, true, artifactDescriptors, new ConsoleMessagePrinter());
         } catch (Exception e) {
             logger.error("Error installing artifacts", e);
         }

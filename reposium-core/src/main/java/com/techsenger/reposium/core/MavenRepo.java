@@ -86,17 +86,17 @@ public class MavenRepo {
         }
     };
 
-    public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, ArtifactDescriptor descriptor,
-            MessagePrinter printer) {
-        return this.resolve(localRepo, remoteReposByName, List.of(descriptor), printer);
+    public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, boolean ignoreChecksum,
+            ArtifactDescriptor descriptor, MessagePrinter printer) {
+        return this.resolve(localRepo, remoteReposByName, ignoreChecksum, List.of(descriptor), printer);
     }
 
-    public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, List<ArtifactDescriptor> descriptors,
-            MessagePrinter printer) {
+    public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, boolean ignoreChecksum,
+            List<ArtifactDescriptor> descriptors, MessagePrinter printer) {
         RepositorySystem localSystem = RepoUtils.newRepositorySystem();
         //building session
         RepositorySystemSession localSession = RepoUtils.newRepositorySystemSession(localSystem,
-                localRepo.toAbsolutePath().toString(), new RepositoryListener(), null);
+                localRepo.toAbsolutePath().toString(), ignoreChecksum, new RepositoryListener(), null);
         //remote repos, order is saved if LinkedHashMap is used.
         List<RemoteRepository> remoteRepositories = remoteReposByName
                 .entrySet()

@@ -25,6 +25,7 @@ import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
 import org.eclipse.aether.impl.DefaultServiceLocator;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.repository.RepositoryPolicy;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.transfer.TransferListener;
@@ -59,9 +60,10 @@ final class RepoUtils {
         return locator.getService(RepositorySystem.class);
     }
 
-    static RepositorySystemSession newRepositorySystemSession(RepositorySystem system,
-            String repoPath, RepositoryListener repoListener, TransferListener transferListener) {
+    static RepositorySystemSession newRepositorySystemSession(RepositorySystem system, String repoPath,
+            boolean ignoreChecksum, RepositoryListener repoListener, TransferListener transferListener) {
         DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
+        session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_IGNORE);
         LocalRepository localRepo = new LocalRepository(repoPath);
         session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, localRepo));
         session.setRepositoryListener(repoListener);
