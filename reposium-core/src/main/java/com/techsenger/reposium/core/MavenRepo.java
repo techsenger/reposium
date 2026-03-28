@@ -96,7 +96,7 @@ public class MavenRepo {
         RepositorySystem localSystem = RepoUtils.newRepositorySystem();
         //building session
         RepositorySystemSession localSession = RepoUtils.newRepositorySystemSession(localSystem,
-                localRepo.toAbsolutePath().toString(), checksumEnabled, new RepositoryListener(), null);
+                localRepo.toAbsolutePath().toString(), checksumEnabled, new RepositoryListener(printer), null);
         //remote repos, order is saved if LinkedHashMap is used.
         List<RemoteRepository> remoteRepositories = remoteReposByName
                 .entrySet()
@@ -119,8 +119,7 @@ public class MavenRepo {
                 if (!artifactResult.isResolved()) {
                     result = false;
                 }
-                artifact = artifactResult.getArtifact();
-                logger.debug("Resolved {} to {}", artifact, artifact.getFile());
+                // logging and printer in RepositoryListener
             } catch (ArtifactResolutionException ex) {
                 logger.error("Error resolving artifact={}", descriptor, ex);
                 result = false;
@@ -151,9 +150,22 @@ public class MavenRepo {
                 absolutePath = localRepo.resolve(relativePath).toAbsolutePath();
                 if (Files.exists(absolutePath)) {
                     FileUtils.deleteDirectory(absolutePath.toFile());
-                }
-                logger.debug("Unresolved artifact id={}, version={}", descriptor.getArtifactId(),
+                    String type = ":jar";
+                    if (descriptor.getType() != null) {
+                        type = ":" + descriptor.getType();
+                    }
+                    String classifier = "";
+                    if (descriptor.getClassifier() != null) {
+                        classifier = ":" + descriptor.getClassifier();
+                    }
+                    logger.debug("Unresolved artifact id={}, version={}", descriptor.getArtifactId(),
                         descriptor.getVersion());
+                    if (printer != null) {
+                        String msg = "Unresolved " + descriptor.getGroupId() + ":" + descriptor.getArtifactId() + type
+                            + classifier + ":" + descriptor.getVersion();
+                        printer.println(msg);
+                    }
+                }
             }
             return true;
         } catch (Exception e) {
