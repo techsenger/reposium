@@ -20,10 +20,15 @@ package com.techsenger.reposium.core;
  *
  * @author Pavel Castornii
  */
-public class ConsoleMessagePrinter implements MessagePrinter {
+public interface ArtifactProgressListener {
 
-    @Override
-    public void println(String message) {
-        System.out.println(message);
-    }
+    /**
+     * The method is called on artifactResolving and artifactUnresolving.
+     */
+    void onStarted(ArtifactDescriptor artifact);
+
+    /**
+     * The method is called artifactResolved and artifactUnresolved.
+     */
+    void onFinished(ArtifactDescriptor artifact);
 }

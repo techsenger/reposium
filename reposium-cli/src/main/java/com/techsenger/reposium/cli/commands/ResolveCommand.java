@@ -19,7 +19,7 @@ package com.techsenger.reposium.cli.commands;
 import com.beust.jcommander.Parameter;
 import com.techsenger.reposium.cli.Command;
 import com.techsenger.reposium.core.ArtifactDescriptor;
-import com.techsenger.reposium.core.ConsoleMessagePrinter;
+import com.techsenger.reposium.core.ArtifactProgressListener;
 import com.techsenger.reposium.core.DefaultArtifactDescriptor;
 import com.techsenger.reposium.core.MavenRepo;
 import java.nio.file.Paths;
@@ -89,8 +89,21 @@ class ResolveCommand implements Command {
         }
         try {
             var repo = new MavenRepo();
+            var listener = new ArtifactProgressListener() {
+                @Override
+                public void onStarted(ArtifactDescriptor artifact) {
+                    throw new UnsupportedOperationException("Not supported yet.");
+                }
+
+                @Override
+                public void onFinished(ArtifactDescriptor a) {
+                    System.out.println("Resolved artifact:" + a.getGroupId() + ":" + a.getArtifactId()
+                            + ":" + a.getVersion());
+                }
+
+            };
             repo.resolve(Paths.get(localRepo), repoUrlsByName, checksumEnabled, artifactDescriptors,
-                    new ConsoleMessagePrinter());
+                    listener);
         } catch (Exception e) {
             logger.error("Error installing artifacts", e);
         }

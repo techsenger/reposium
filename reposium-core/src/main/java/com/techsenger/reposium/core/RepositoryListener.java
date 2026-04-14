@@ -29,18 +29,26 @@ class RepositoryListener extends AbstractRepositoryListener {
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryListener.class);
 
-    private final MessagePrinter printer;
+    private final ArtifactProgressListener listener;
 
-    RepositoryListener(MessagePrinter printer) {
-        this.printer = printer;
+    RepositoryListener(ArtifactProgressListener listener) {
+        this.listener = listener;
+    }
+
+    @Override
+    public void artifactResolving(RepositoryEvent event) {
+        super.artifactResolving(event);
+        if (listener != null) {
+            listener.onStarted(ArtifactConverter.convert(event.getArtifact()));
+        }
     }
 
     @Override
     public void artifactResolved(RepositoryEvent event) {
         super.artifactResolved(event);
-        logger.debug("Resolved artifact {} from {}", event.getArtifact(), event.getRepository());
-        if (printer != null) {
-            printer.println("Resolved artifact " + event.getArtifact() + " from " + event.getRepository());
+        if (listener != null) {
+            listener.onFinished(ArtifactConverter.convert(event.getArtifact()));
         }
+        logger.debug("Resolved artifact {} from {}", event.getArtifact(), event.getRepository());
     }
 }

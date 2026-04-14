@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
-import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
@@ -87,16 +86,16 @@ public class MavenRepo {
     };
 
     public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, boolean checksumEnabled,
-            ArtifactDescriptor descriptor, MessagePrinter printer) {
-        return this.resolve(localRepo, remoteReposByName, checksumEnabled, List.of(descriptor), printer);
+            ArtifactDescriptor descriptor, ArtifactProgressListener listener) {
+        return this.resolve(localRepo, remoteReposByName, checksumEnabled, List.of(descriptor), listener);
     }
 
     public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, boolean checksumEnabled,
-            List<ArtifactDescriptor> descriptors, MessagePrinter printer) {
+            List<ArtifactDescriptor> descriptors, ArtifactProgressListener listener) {
         RepositorySystem localSystem = RepoUtils.newRepositorySystem();
         //building session
         RepositorySystemSession localSession = RepoUtils.newRepositorySystemSession(localSystem,
-                localRepo.toAbsolutePath().toString(), checksumEnabled, new RepositoryListener(printer), null);
+                localRepo.toAbsolutePath().toString(), checksumEnabled, new RepositoryListener(listener), null);
         //remote repos, order is saved if LinkedHashMap is used.
         List<RemoteRepository> remoteRepositories = remoteReposByName
                 .entrySet()
@@ -108,8 +107,7 @@ public class MavenRepo {
         boolean result = true;
         //resolve each artifact
         for (var descriptor : descriptors) {
-            Artifact artifact = new DefaultArtifact(descriptor.getGroupId(), descriptor.getArtifactId(),
-                    descriptor.getClassifier(), descriptor.getType(), descriptor.getVersion());
+            Artifact artifact = ArtifactConverter.convert(descriptor);
             ArtifactRequest artifactRequest = new ArtifactRequest();
             artifactRequest.setArtifact(artifact);
             artifactRequest.setRepositories(remoteRepositories);
@@ -128,14 +126,15 @@ public class MavenRepo {
         return result;
     }
 
-    public boolean unresolve(Path localRepo, ArtifactDescriptor descriptor, MessagePrinter printer) {
-        return this.unresolve(localRepo, List.of(descriptor), printer);
+    public boolean unresolve(Path localRepo, ArtifactDescriptor descriptor, ArtifactProgressListener listener) {
+        return this.unresolve(localRepo, List.of(descriptor), listener);
     }
 
-    public boolean unresolve(Path localRepo, List<ArtifactDescriptor> descriptors, MessagePrinter printer) {
+    public boolean unresolve(Path localRepo, List<ArtifactDescriptor> descriptors, ArtifactProgressListener listener) {
         Path absolutePath = null;
         try {
             for (var descriptor : descriptors) {
+                listener.onStarted(descriptor);
                 String relativePath = null;
                 if (OsUtils.isUnix()) {
                     relativePath = descriptor.getGroupId().replaceAll(Pattern.quote("."), File.separator);
@@ -160,12 +159,8 @@ public class MavenRepo {
                     }
                     logger.debug("Unresolved artifact id={}, version={}", descriptor.getArtifactId(),
                         descriptor.getVersion());
-                    if (printer != null) {
-                        String msg = "Unresolved " + descriptor.getGroupId() + ":" + descriptor.getArtifactId() + type
-                            + classifier + ":" + descriptor.getVersion();
-                        printer.println(msg);
-                    }
                 }
+                listener.onFinished(descriptor);
             }
             return true;
         } catch (Exception e) {
