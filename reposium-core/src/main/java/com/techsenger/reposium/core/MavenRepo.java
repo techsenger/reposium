@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
@@ -55,9 +56,9 @@ public class MavenRepo {
 
         private final Path localRepo;
 
-        private final List<ArtifactDescriptor> descriptors;
+        private final List<Artifact> descriptors;
 
-        RepoFileVisitor(Path localRepo, List<ArtifactDescriptor> descriptors) {
+        RepoFileVisitor(Path localRepo, List<Artifact> descriptors) {
             this.localRepo = localRepo;
             this.descriptors = descriptors;
         }
@@ -75,9 +76,12 @@ public class MavenRepo {
                     groupPath = groupPath.getParent();
                 }
                 Collections.reverse(subGroups);
-                var descriptor = new DefaultArtifactDescriptor(String.join(".", subGroups),
+                var descriptor = new DefaultArtifact(
+                        String.join(".", subGroups),
                         artifactPath.getFileName().toString(),
-                        versionPath.getFileName().toString(), null, PathUtils.getFileExtension(path));
+                        null,
+                        PathUtils.getFileExtension(path),
+                        versionPath.getFileName().toString());
                 descriptors.add(descriptor);
 
             }
@@ -86,12 +90,12 @@ public class MavenRepo {
     };
 
     public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, boolean checksumEnabled,
-            ArtifactDescriptor descriptor, ArtifactProgressListener listener) {
-        return this.resolve(localRepo, remoteReposByName, checksumEnabled, List.of(descriptor), listener);
+            Artifact artifact, ArtifactEventListener listener) {
+        return this.resolve(localRepo, remoteReposByName, checksumEnabled, List.of(artifact), listener);
     }
 
     public boolean resolve(Path localRepo, Map<String, String> remoteReposByName, boolean checksumEnabled,
-            List<ArtifactDescriptor> descriptors, ArtifactProgressListener listener) {
+            List<Artifact> artifacts, ArtifactEventListener listener) {
         RepositorySystem localSystem = RepoUtils.newRepositorySystem();
         //building session
         RepositorySystemSession localSession = RepoUtils.newRepositorySystemSession(localSystem,
@@ -106,8 +110,7 @@ public class MavenRepo {
 
         boolean result = true;
         //resolve each artifact
-        for (var descriptor : descriptors) {
-            Artifact artifact = ArtifactConverter.convert(descriptor);
+        for (var artifact : artifacts) {
             ArtifactRequest artifactRequest = new ArtifactRequest();
             artifactRequest.setArtifact(artifact);
             artifactRequest.setRepositories(remoteRepositories);
@@ -119,48 +122,48 @@ public class MavenRepo {
                 }
                 // logging and printer in RepositoryListener
             } catch (ArtifactResolutionException ex) {
-                logger.error("Error resolving artifact={}", descriptor, ex);
+                logger.error("Error resolving artifact={}", artifact, ex);
                 result = false;
             }
         }
         return result;
     }
 
-    public boolean unresolve(Path localRepo, ArtifactDescriptor descriptor, ArtifactProgressListener listener) {
-        return this.unresolve(localRepo, List.of(descriptor), listener);
+    public boolean unresolve(Path localRepo, Artifact artifact, ArtifactEventListener listener) {
+        return this.unresolve(localRepo, List.of(artifact), listener);
     }
 
-    public boolean unresolve(Path localRepo, List<ArtifactDescriptor> descriptors, ArtifactProgressListener listener) {
+    public boolean unresolve(Path localRepo, List<Artifact> artifacts, ArtifactEventListener listener) {
         Path absolutePath = null;
         try {
-            for (var descriptor : descriptors) {
-                listener.onStarted(descriptor);
+            for (var artifact : artifacts) {
+                listener.onStarted(artifact);
                 String relativePath = null;
                 if (OsUtils.isUnix()) {
-                    relativePath = descriptor.getGroupId().replaceAll(Pattern.quote("."), File.separator);
+                    relativePath = artifact.getGroupId().replaceAll(Pattern.quote("."), File.separator);
                 } else if (OsUtils.isWindows()) {
-                    relativePath = descriptor.getGroupId().replaceAll(Pattern.quote("."), "\\\\");
+                    relativePath = artifact.getGroupId().replaceAll(Pattern.quote("."), "\\\\");
                 }
                 relativePath = relativePath
                         + File.separator
-                        + descriptor.getArtifactId()
+                        + artifact.getArtifactId()
                         + File.separator
-                        + descriptor.getVersion();
+                        + artifact.getVersion();
                 absolutePath = localRepo.resolve(relativePath).toAbsolutePath();
                 if (Files.exists(absolutePath)) {
                     FileUtils.deleteDirectory(absolutePath.toFile());
-                    String type = ":jar";
-                    if (descriptor.getType() != null) {
-                        type = ":" + descriptor.getType();
+                    String ext = ":jar";
+                    if (artifact.getExtension() != null) {
+                        ext = ":" + artifact.getExtension();
                     }
                     String classifier = "";
-                    if (descriptor.getClassifier() != null) {
-                        classifier = ":" + descriptor.getClassifier();
+                    if (artifact.getClassifier() != null) {
+                        classifier = ":" + artifact.getClassifier();
                     }
-                    logger.debug("Unresolved artifact id={}, version={}", descriptor.getArtifactId(),
-                        descriptor.getVersion());
+                    logger.debug("Unresolved artifact id={}, version={}", artifact.getArtifactId(),
+                        artifact.getVersion());
                 }
-                listener.onFinished(descriptor);
+                listener.onFinished(artifact);
             }
             return true;
         } catch (Exception e) {
@@ -169,8 +172,8 @@ public class MavenRepo {
         }
     }
 
-    public List<ArtifactDescriptor> scanRepo(Path localRepo) throws IOException {
-        List<ArtifactDescriptor> descriptors = new ArrayList<>();
+    public List<Artifact> scanRepo(Path localRepo) throws IOException {
+        List<Artifact> descriptors = new ArrayList<>();
         FileVisitor<Path> fv = new RepoFileVisitor(localRepo, descriptors);
         Files.walkFileTree(localRepo, fv);
         return descriptors;

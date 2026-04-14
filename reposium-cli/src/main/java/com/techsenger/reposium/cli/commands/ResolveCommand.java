@@ -18,9 +18,6 @@ package com.techsenger.reposium.cli.commands;
 
 import com.beust.jcommander.Parameter;
 import com.techsenger.reposium.cli.Command;
-import com.techsenger.reposium.core.ArtifactDescriptor;
-import com.techsenger.reposium.core.ArtifactProgressListener;
-import com.techsenger.reposium.core.DefaultArtifactDescriptor;
 import com.techsenger.reposium.core.MavenRepo;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -31,6 +28,7 @@ import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.techsenger.reposium.core.ArtifactEventListener;
 
 /**
  *
@@ -79,30 +77,29 @@ class ResolveCommand implements Command {
             repoUrlsByName.put(name, url);
         }
 
-        List<ArtifactDescriptor> artifactDescriptors = new ArrayList<>();
+        List<Artifact> artifactInstances = new ArrayList<>();
         for (var artifactStr : artifacts) {
             //in order not to parse artifact string we use aether artifact
             Artifact artifact = new DefaultArtifact(artifactStr);
-            var descriptor = new DefaultArtifactDescriptor(artifact.getGroupId(), artifact.getArtifactId(),
-                    artifact.getVersion(), artifact.getClassifier(), artifact.getExtension());
-            artifactDescriptors.add(descriptor);
+            artifactInstances.add(artifact);
         }
         try {
             var repo = new MavenRepo();
-            var listener = new ArtifactProgressListener() {
+            var listener = new ArtifactEventListener() {
+
                 @Override
-                public void onStarted(ArtifactDescriptor artifact) {
-                    throw new UnsupportedOperationException("Not supported yet.");
+                public void onStarted(Artifact artifact) {
+                    // empty
                 }
 
                 @Override
-                public void onFinished(ArtifactDescriptor a) {
+                public void onFinished(Artifact a) {
                     System.out.println("Resolved artifact:" + a.getGroupId() + ":" + a.getArtifactId()
                             + ":" + a.getVersion());
                 }
 
             };
-            repo.resolve(Paths.get(localRepo), repoUrlsByName, checksumEnabled, artifactDescriptors,
+            repo.resolve(Paths.get(localRepo), repoUrlsByName, checksumEnabled, artifactInstances,
                     listener);
         } catch (Exception e) {
             logger.error("Error installing artifacts", e);

@@ -29,9 +29,9 @@ class RepositoryListener extends AbstractRepositoryListener {
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryListener.class);
 
-    private final ArtifactProgressListener listener;
+    private final ArtifactEventListener listener;
 
-    RepositoryListener(ArtifactProgressListener listener) {
+    RepositoryListener(ArtifactEventListener listener) {
         this.listener = listener;
     }
 
@@ -39,7 +39,7 @@ class RepositoryListener extends AbstractRepositoryListener {
     public void artifactResolving(RepositoryEvent event) {
         super.artifactResolving(event);
         if (listener != null) {
-            listener.onStarted(ArtifactConverter.convert(event.getArtifact()));
+            listener.onStarted(event.getArtifact());
         }
     }
 
@@ -47,7 +47,7 @@ class RepositoryListener extends AbstractRepositoryListener {
     public void artifactResolved(RepositoryEvent event) {
         super.artifactResolved(event);
         if (listener != null) {
-            listener.onFinished(ArtifactConverter.convert(event.getArtifact()));
+            listener.onFinished(event.getArtifact());
         }
         logger.debug("Resolved artifact {} from {}", event.getArtifact(), event.getRepository());
     }

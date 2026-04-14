@@ -16,19 +16,21 @@
 
 package com.techsenger.reposium.core;
 
+import org.eclipse.aether.artifact.Artifact;
+
 /**
  *
  * @author Pavel Castornii
  */
-public interface ArtifactDescriptor {
+public interface ArtifactEventListener {
 
-    String getGroupId();
+    /**
+     * The method is called on artifactResolving and artifactUnresolving.
+     */
+    void onStarted(Artifact artifact);
 
-    String getArtifactId();
-
-    String getVersion();
-
-    String getClassifier();
-
-    String getType();
+    /**
+     * The method is called artifactResolved and artifactUnresolved.
+     */
+    void onFinished(Artifact artifact);
 }
